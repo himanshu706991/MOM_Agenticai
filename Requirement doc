@@ -1,0 +1,90 @@
+to design an in-house LLM-powered agentic AI system for generating Minutes of Meeting (MoM) from transcripts, PDFs, or DOCX files, without sending sensitive data to OpenAI APIs.
+
+Here’s what I’ll do:
+
+Give you the full architecture (LangGraph + LangChain hybrid).
+
+Describe each agent’s responsibility.
+
+Show step-by-step flow of how the data moves.
+
+Add possible extra features that will improve quality.
+
+Provide initial code structure so you can start building it locally (and later connect to a local LLM like LLaMA 3, Mistral, or Falcon).
+
+1. Architecture Overview
+
+We’ll build four main agents inside a LangGraph workflow:
+
+Document Ingestion Agent
+
+Handles file uploads (PDF, DOCX, TXT).
+
+Extracts raw text using PyMuPDF, python-docx, or Tika.
+
+Optionally applies OCR for scanned PDFs using Tesseract.
+
+Key Information Extraction Agent
+
+Uses an LLM (local model) to detect important points: decisions, action items, deadlines, owners, risks.
+
+Filters out filler or irrelevant conversation.
+
+Stores extracted data in a structured JSON format.
+
+Summarization & MoM Draft Agent
+
+Summarizes the extracted points into a readable MoM.
+
+Supports both bullet-style MoM and narrative-style MoM.
+
+Includes sections like:
+
+Meeting Title
+
+Date & Time
+
+Participants
+
+Agenda Items
+
+Action Points with Owners & Due Dates
+
+Key Risks / Follow-ups
+
+Feedback & Final Formatting Agent
+
+Applies a critique loop (human-in-the-loop optional).
+
+Fixes grammar, improves clarity, and ensures consistent formatting.
+
+Optionally runs a style check against your company’s MoM format template.
+
+Outputs the final version in PDF/DOCX.
+
+2. Flow of Operations (LangGraph Example)
+[User Uploads Transcript] 
+       ↓
+Document Ingestion Agent
+       ↓
+Key Information Extraction Agent
+       ↓
+Summarization & MoM Draft Agent
+       ↓
+Feedback & Final Formatting Agent
+       ↓
+[Final MoM Output in PDF/DOCX]
+
+3. Extra Functionalities to Add
+
+Speaker diarization (if transcript has multiple speakers, separate by name or role).
+
+Named Entity Recognition (NER) to tag organizations, people, dates.
+
+Sentiment detection (optional for tone analysis of discussions).
+
+Topic classification for better indexing in archives.
+
+Integration with internal knowledge base (to auto-link project references).
+
+Multi-language support if meetings are not always in English.
