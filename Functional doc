@@ -1,0 +1,155 @@
+a straightforward, function-based implementation of your in-house LLM + LangChain agentic minutes-of-meeting (MoM) generator, without the full-blown OOP setup.
+
+Here’s how we can structure it:
+
+Functional Pipeline Overview
+
+Upload/Read Transcript (PDF/DOC/TXT)
+
+Agent 1: Extract meaningful meeting points
+
+Agent 2: Summarize into MoM draft
+
+Agent 3: Critique & improve (human feedback loop or self-critique)
+
+Agent 4: Format MoM (polished structure)
+
+Optional: Send final text to a higher-end LLM (e.g., GPT-4, in-house fine-tuned) for final refinement
+
+Example Function-Based Code
+import os
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+from PyPDF2 import PdfReader
+import docx
+
+# ----------------------------
+# Step 1: Read Transcript
+# ----------------------------
+
+def read_pdf(file_path):
+    reader = PdfReader(file_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
+    return text
+
+def read_docx(file_path):
+    doc = docx.Document(file_path)
+    return "\n".join([p.text for p in doc.paragraphs])
+
+def load_transcript(file_path):
+    if file_path.endswith(".pdf"):
+        return read_pdf(file_path)
+    elif file_path.endswith(".docx"):
+        return read_docx(file_path)
+    elif file_path.endswith(".txt"):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    else:
+        raise ValueError("Unsupported file format")
+
+
+# ----------------------------
+# Step 2: Agent 1 – Extract Meaningful Info
+# ----------------------------
+
+def extract_key_points(transcript, llm):
+    template = """
+    Extract the key discussion points from the following meeting transcript.
+    Focus on important decisions, deadlines, action items, and stakeholders.
+
+    Transcript:
+    {transcript}
+
+    Key Points:
+    """
+    prompt = PromptTemplate(input_variables=["transcript"], template=template)
+    return llm(prompt.format(transcript=transcript))
+
+
+# ----------------------------
+# Step 3: Agent 2 – Summarize into MoM
+# ----------------------------
+
+def summarize_to_mom(key_points, llm):
+    template = """
+    Based on the following key points, create a well-structured Minutes of Meeting (MoM)
+    with sections like Date, Attendees, Agenda, Discussion Points, Decisions, Action Items.
+
+    Key Points:
+    {key_points}
+
+    MoM:
+    """
+    prompt = PromptTemplate(input_variables=["key_points"], template=template)
+    return llm(prompt.format(key_points=key_points))
+
+
+# ----------------------------
+# Step 4: Agent 3 – Critique & Improve
+# ----------------------------
+
+def critique_and_improve(mom_draft, llm):
+    template = """
+    Review the following Minutes of Meeting draft.
+    Suggest improvements in clarity, formatting, and completeness.
+    Then provide the improved version.
+
+    MoM Draft:
+    {mom_draft}
+
+    Improved MoM:
+    """
+    prompt = PromptTemplate(input_variables=["mom_draft"], template=template)
+    return llm(prompt.format(mom_draft=mom_draft))
+
+
+# ----------------------------
+# Step 5: Final Aggregation & Formatting
+# ----------------------------
+
+def format_final_mom(improved_mom, llm):
+    template = """
+    Format the following Minutes of Meeting into a clean, professional template.
+
+    Improved MoM:
+    {improved_mom}
+
+    Final Formatted MoM:
+    """
+    prompt = PromptTemplate(input_variables=["improved_mom"], template=template)
+    return llm(prompt.format(improved_mom=improved_mom))
+
+
+# ----------------------------
+# Step 6: Run Entire Pipeline
+# ----------------------------
+
+def run_pipeline(file_path):
+    llm = OpenAI(model_name="gpt-4", temperature=0)  # Replace with in-house LLM
+    transcript = load_transcript(file_path)
+    key_points = extract_key_points(transcript, llm)
+    mom_draft = summarize_to_mom(key_points, llm)
+    improved_mom = critique_and_improve(mom_draft, llm)
+    final_mom = format_final_mom(improved_mom, llm)
+    return final_mom
+
+
+if __name__ == "__main__":
+    file_path = "meeting_transcript.pdf"  # Change to your file
+    final_minutes = run_pipeline(file_path)
+    print(final_minutes)
+
+Key Notes
+
+You can replace OpenAI with your private LLM endpoint to avoid sending data outside.
+
+For PDF/DOCX parsing, I’ve used PyPDF2 and python-docx — they’re lightweight and easy to install.
+
+LangChain PromptTemplate helps keep prompts clean and reusable.
+
+Agents here are just sequential functions — no need for complex class/object setup.
+
+You can add feedback loop by storing the critique + improved MoM in a database for future fine-tuning.
